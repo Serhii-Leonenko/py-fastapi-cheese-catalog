@@ -1,3 +1,5 @@
+from typing import Annotated, Generator
+
 from fastapi import FastAPI, Depends, HTTPException
 from sqlalchemy.orm import Session
 
@@ -9,7 +11,7 @@ from db.models import PackagingType
 app = FastAPI()
 
 
-def get_db() -> Session:
+def get_db() -> Generator[Session, None, None]:
     db = SessionLocal()
 
     try:
@@ -19,36 +21,37 @@ def get_db() -> Session:
 
 
 @app.get("/")
-def root() -> dict:
+async def root():
     return {"message": "Hello World"}
 
 
 @app.get("/cheese_types/", response_model=list[schemas.CheeseType])
-def read_cheese_types(db: Session = Depends(get_db)):
+async def read_cheese_types(db: Annotated[Session, Depends(get_db)]):
     return crud.get_all_cheese_types(db=db)
 
 
 @app.post("/cheese_types/", response_model=schemas.CheeseType)
-def create_cheese_type(
+async def create_cheese_type(
     cheese_type: schemas.CheeseTypeCreate,
-    db: Session = Depends(get_db),
+    db: Annotated[Session, Depends(get_db)]
 ):
     db_cheese_type = crud.get_cheese_type_by_name(db=db, name=cheese_type.name)
-
     if db_cheese_type:
         raise HTTPException(
-            status_code=400,
-            detail="Such name for CheeseType already exists"
+            status_code=400, detail="Cheese type with this name already exists"
         )
 
-    return crud.create_cheese_type(db=db, cheese_type=cheese_type)
+    return crud.create_cheese_type(
+        db=db,
+        cheese_type=cheese_type
+    )
 
 
 @app.get("/cheese/", response_model=list[schemas.Cheese])
-def read_cheese(
+async def read_cheese(
+    db: Annotated[Session, Depends(get_db)],
     packaging_type: PackagingType | None = None,
     cheese_type: str | None = None,
-    db: Session = Depends(get_db),
 ):
     return crud.get_cheese_list(
         db=db, packaging_type=packaging_type, cheese_type=cheese_type
@@ -56,15 +59,29 @@ def read_cheese(
 
 
 @app.get("/cheese/{cheese_id}/", response_model=schemas.Cheese)
-def read_single_cheese(cheese_id: int, db: Session = Depends(get_db)):
-    db_cheese = crud.get_cheese(db=db, cheese_id=cheese_id)
+async def read_single_cheese(
+    cheese_id: int,
+    db: Annotated[Session, Depends(get_db)]
+):
+    db_cheese = crud.get_cheese_by_id(db=db, cheese_id=cheese_id)
 
-    if db_cheese is None:
+    if not db_cheese:
         raise HTTPException(status_code=404, detail="Cheese not found")
 
     return db_cheese
 
 
 @app.post("/cheese/", response_model=schemas.Cheese)
-def create_cheese(cheese: schemas.CheeseCreate, db: Session = Depends(get_db)):
+async def create_cheese(
+    cheese: schemas.CheeseCreate,
+    db: Annotated[Session, Depends(get_db)]
+):
+    db_cheese = crud.get_cheese_by_title(db=db, title=cheese.title)
+    if db_cheese:
+        raise HTTPException(status_code=400, detail="Cheese with this title already exists")
+
+    cheese_type = crud.get_cheese_type_by_id(db=db, cheese_type_id=cheese.cheese_type_id)
+    if not cheese_type:
+        raise HTTPException(status_code=400, detail="Cheese type not found")
+
     return crud.create_cheese(db=db, cheese=cheese)
