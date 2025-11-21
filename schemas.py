@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 from db.models import PackagingType
 
@@ -13,10 +13,9 @@ class CheeseTypeCreate(CheeseTypeBase):
 
 
 class CheeseType(CheeseTypeBase):
-    id: int
+    model_config = ConfigDict(from_attributes=True)
 
-    class Config:
-        orm_mode = True
+    id: int
 
 
 class CheeseBase(BaseModel):
@@ -30,9 +29,7 @@ class CheeseCreate(CheeseBase):
 
 
 class Cheese(CheeseBase):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     cheese_type: CheeseType
-
-    class Config:
-        orm_mode = True
-

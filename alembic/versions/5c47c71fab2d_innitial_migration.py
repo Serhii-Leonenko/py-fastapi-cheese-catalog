@@ -1,8 +1,8 @@
-"""Initial migration
+"""Innitial migration
 
-Revision ID: 3f1860fbfc17
+Revision ID: 5c47c71fab2d
 Revises: 
-Create Date: 2023-03-08 16:16:41.100023
+Create Date: 2025-11-13 17:21:43.461497
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = '3f1860fbfc17'
+revision = '5c47c71fab2d'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -31,9 +31,10 @@ def upgrade() -> None:
     sa.Column('title', sa.String(length=255), nullable=False),
     sa.Column('price', sa.Integer(), nullable=False),
     sa.Column('packaging_type', sa.Enum('IN_PACKAGE', 'WEIGHT', name='packagingtype'), nullable=False),
-    sa.Column('cheese_type_id', sa.Integer(), nullable=True),
+    sa.Column('cheese_type_id', sa.Integer(), nullable=False),
     sa.ForeignKeyConstraint(['cheese_type_id'], ['cheese_type.id'], ),
-    sa.PrimaryKeyConstraint('id')
+    sa.PrimaryKeyConstraint('id'),
+    sa.UniqueConstraint('title')
     )
     op.create_index(op.f('ix_cheese_id'), 'cheese', ['id'], unique=False)
     # ### end Alembic commands ###
